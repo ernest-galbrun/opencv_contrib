@@ -41,6 +41,8 @@
 //M*/
 
 #include "test_precomp.hpp"
+#include "opencv2\xfeatures2d\nonfree.hpp"
+#include "opencv2\xfeatures2d.hpp"
 
 #ifdef HAVE_CUDA
 
@@ -94,15 +96,11 @@ CUDA_TEST_P(SURF, Detector)
     std::vector<cv::KeyPoint> keypoints;
     surf(loadMat(image), cv::cuda::GpuMat(), keypoints);
 
-    cv::xfeatures2d::SURF surf_gold;
-    surf_gold.hessianThreshold = hessianThreshold;
-    surf_gold.nOctaves = nOctaves;
-    surf_gold.nOctaveLayers = nOctaveLayers;
-    surf_gold.extended = extended;
-    surf_gold.upright = upright;
+    auto surf_gold = cv::xfeatures2d::SURF::create(hessianThreshold, nOctaves, nOctaveLayers, extended, upright);
 
     std::vector<cv::KeyPoint> keypoints_gold;
-    surf_gold(image, cv::noArray(), keypoints_gold);
+    cv::Mat cpu_descriptors;
+    surf_gold->compute(image, keypoints_gold, cpu_descriptors);
 
     ASSERT_EQ(keypoints_gold.size(), keypoints.size());
     int matchedCount = getMatchedPointsCount(keypoints_gold, keypoints);
@@ -130,16 +128,11 @@ CUDA_TEST_P(SURF, Detector_Masked)
     std::vector<cv::KeyPoint> keypoints;
     surf(loadMat(image), loadMat(mask), keypoints);
 
-    cv::xfeatures2d::SURF surf_gold;
-    surf_gold.hessianThreshold = hessianThreshold;
-    surf_gold.nOctaves = nOctaves;
-    surf_gold.nOctaveLayers = nOctaveLayers;
-    surf_gold.extended = extended;
-    surf_gold.upright = upright;
+    cv::Ptr<cv::xfeatures2d::SURF> surf_gold = cv::xfeatures2d::SURF::create(hessianThreshold,nOctaves, nOctaveLayers, extended, upright);
 
     std::vector<cv::KeyPoint> keypoints_gold;
-    surf_gold(image, mask, keypoints_gold);
-
+    cv::Mat cpu_descriptors;
+    surf_gold->detectAndCompute(image, mask, keypoints_gold, cpu_descriptors);
     ASSERT_EQ(keypoints_gold.size(), keypoints.size());
     int matchedCount = getMatchedPointsCount(keypoints_gold, keypoints);
     double matchedRatio = static_cast<double>(matchedCount) / keypoints_gold.size();
@@ -160,21 +153,15 @@ CUDA_TEST_P(SURF, Descriptor)
     surf.upright = upright;
     surf.keypointsRatio = 0.05f;
 
-    cv::xfeatures2d::SURF surf_gold;
-    surf_gold.hessianThreshold = hessianThreshold;
-    surf_gold.nOctaves = nOctaves;
-    surf_gold.nOctaveLayers = nOctaveLayers;
-    surf_gold.extended = extended;
-    surf_gold.upright = upright;
+    cv::Ptr<cv::xfeatures2d::SURF> surf_gold = cv::xfeatures2d::SURF::create(hessianThreshold, nOctaves, nOctaveLayers, extended, upright);
 
     std::vector<cv::KeyPoint> keypoints;
-    surf_gold(image, cv::noArray(), keypoints);
 
     cv::cuda::GpuMat descriptors;
     surf(loadMat(image), cv::cuda::GpuMat(), keypoints, descriptors, true);
 
     cv::Mat descriptors_gold;
-    surf_gold(image, cv::noArray(), keypoints, descriptors_gold, true);
+    surf_gold->compute(image, keypoints, descriptors_gold);
 
     cv::BFMatcher matcher(surf.defaultNorm());
     std::vector<cv::DMatch> matches;

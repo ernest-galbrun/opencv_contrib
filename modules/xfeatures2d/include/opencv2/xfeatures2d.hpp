@@ -42,6 +42,7 @@ the use of this software, even if advised of the possibility of such damage.
 #include "opencv2/features2d.hpp"
 #include "opencv2/xfeatures2d/nonfree.hpp"
 
+
 namespace cv
 {
 namespace xfeatures2d
